@@ -3,10 +3,303 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Firestore CRUD with SweetAlert</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 600px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            margin: 20px 0;
+        }
+
+        input, textarea, button {
+            margin: 10px 0;
+            padding: 10px;
+            width: 100%;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .post {
+            border-bottom: 1px solid #ccc;
+            padding: 10px 0;
+        }
+
+        .post:last-child {
+            border-bottom: none;
+        }
+
+        .post h3 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .post p {
+            margin: 5px 0;
+        }
+
+        .post-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .post-actions button {
+            width: 48%;
+            background-color: #ff4d4d;
+        }
+
+        .post-actions button.edit {
+            background-color: #28a745;
+        }
+
+        @media (max-width: 768px) {
+            .post-actions button {
+                width: 100%;
+                margin: 5px 0;
+            }
+        }
+    </style>
 </head>
 <body>
-    <button id="google-login">continue with login</button>
-    <script src="firebase.js" defer type="module"></script>
+    <div class="container">
+        <h2>Add a Post</h2>
+        <form id="post-form">
+            <input type="text" id="post-title" placeholder="Post Title" required>
+            <textarea id="post-content" rows="5" placeholder="Post Content" required></textarea>
+            <button type="submit">Add Post</button>
+        </form>
+    </div>
+
+    <div class="container">
+        <h2>All Posts</h2>
+        <div id="posts-container"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+        import {
+            getFirestore,
+            collection,
+            addDoc,
+            onSnapshot,
+            doc,
+            updateDoc,
+            deleteDoc
+        } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBJPWQPulCO9JKtU3SI0FlIdHzVtXwLQPI",
+            authDomain: "new-receipe-dd8d7.firebaseapp.com",
+            projectId: "new-receipe-dd8d7",
+            storageBucket: "new-receipe-dd8d7.firebasestorage.app",
+            messagingSenderId: "803719843645",
+            appId: "1:803719843645:web:19e3a29bd8865d58c43f54",
+            measurementId: "G-QX7RYN7PCF"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // DOM Elements
+        const postForm = document.getElementById("post-form");
+        const postTitle = document.getElementById("post-title");
+        const postContent = document.getElementById("post-content");
+        const postsContainer = document.getElementById("posts-container");
+
+        // Add a New Post
+        postForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const title = postTitle.value;
+            const content = postContent.value;
+
+            try {
+                await addDoc(collection(db, "posts"), {
+                    title: title,
+                    content: content,
+                    createdAt: new Date().toISOString()
+                });
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Post Added',
+                    text: 'Your post has been added successfully!',
+                });
+
+                postForm.reset();
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.message,
+                });
+            }
+        });
+
+        // Fetch and Display Posts in Real-Time
+        const unsubscribe = onSnapshot(collection(db, "posts"), (snapshot) => {
+            postsContainer.innerHTML = ""; // Clear container
+            snapshot.forEach((doc) => {
+                const post = doc.data();
+                const postId = doc.id;
+
+                const postDiv = document.createElement("div");
+                postDiv.classList.add("post");
+                postDiv.innerHTML = `
+                    <h3>${post.title}</h3>
+                    <p>${post.content}</p>
+                    <div class="post-actions">
+                        <button class="edit" data-id="${postId}">Edit</button>
+                        <button class="delete" data-id="${postId}">Delete</button>
+                    </div>
+                `;
+                postsContainer.appendChild(postDiv);
+            });
+
+            // Add Event Listeners for Edit and Delete
+            document.querySelectorAll(".edit").forEach((button) => {
+                button.addEventListener("click", (e) => {
+                    const postId = e.target.getAttribute("data-id");
+                    editPost(postId);
+                });
+            });
+
+            document.querySelectorAll(".delete").forEach((button) => {
+                button.addEventListener("click", (e) => {
+                    const postId = e.target.getAttribute("data-id");
+                    deletePost(postId);
+                });
+            });
+        });
+
+        // Edit a Post with SweetAlert
+async function editPost(postId) {
+    try {
+        // Get the post reference
+        const postRef = doc(db, "posts", postId);
+        const postSnapshot = await getDoc(postRef);
+
+        if (postSnapshot.exists()) {
+            const postData = postSnapshot.data();
+
+            // Display SweetAlert form with pre-filled data
+            Swal.fire({
+                title: 'Edit Post',
+                html: `
+                    <input id="edit-title" class="swal2-input" placeholder="Title" value="${postData.title}">
+                    <textarea id="edit-content" class="swal2-textarea" placeholder="Content">${postData.content}</textarea>
+                `,
+                confirmButtonText: 'Save',
+                showCancelButton: true,
+                preConfirm: () => {
+                    const newTitle = document.getElementById("edit-title").value;
+                    const newContent = document.getElementById("edit-content").value;
+
+                    if (!newTitle || !newContent) {
+                        Swal.showValidationMessage(`Please enter both title and content`);
+                        return false;
+                    }
+                    return { newTitle, newContent };
+                },
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    const { newTitle, newContent } = result.value;
+
+                    // Update the Firestore document
+                    await updateDoc(postRef, {
+                        title: newTitle,
+                        content: newContent,
+                        updatedAt: new Date().toISOString()
+                    });
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Post Updated',
+                        text: 'Your post has been updated successfully!',
+                    });
+                }
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Post not found!',
+            });
+        }
+    } catch (error) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: error.message,
+        });
+    }
+}
+
+                       
+              
+
+        // Delete a Post
+        async function deletePost(postId) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        const postRef = doc(db, "posts", postId);
+                        await deleteDoc(postRef);
+
+                        Swal.fire(
+                            'Deleted!',
+                            'Your post has been deleted.',
+                            'success'
+                        );
+                    } catch (error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: error.message,
+                        });
+                    }
+                }
+            });
+        }
+    </script>
 </body>
 </html>

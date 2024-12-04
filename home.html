@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Navbar Styles */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+        }
+
+        .navbar .profile {
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar .profile img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+            object-fit: cover;
+        }
+
+        .navbar .logout-btn {
+            background-color: #db4437;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .navbar .logout-btn:hover {
+            background-color: #c33d28;
+        }
+
+        .content {
+            padding: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <div class="navbar">
+        <div class="profile">
+            <img id="user-photo" src="placeholder.png" alt="Profile Image">
+            <span id="user-email">User Email</span>
+        </div>
+        <button class="logout-btn" id="logout-btn">Logout</button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="content">
+        <h1>Welcome to Instagram Clone</h1>
+        <p>Explore the app!</p>
+    </div>
+
+    <script type="module" src="home.js"></script>
+</body>
+</html>
