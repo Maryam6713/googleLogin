@@ -113,7 +113,8 @@
             onSnapshot,
             doc,
             updateDoc,
-            deleteDoc
+            deleteDoc,
+            getDoc // Added getDoc
         } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
         // Firebase Configuration
@@ -204,70 +205,64 @@
         });
 
         // Edit a Post with SweetAlert
-async function editPost(postId) {
-    try {
-        // Get the post reference
-        const postRef = doc(db, "posts", postId);
-        const postSnapshot = await getDoc(postRef);
+        async function editPost(postId) {
+            try {
+                const postRef = doc(db, "posts", postId);
+                const postSnapshot = await getDoc(postRef);
 
-        if (postSnapshot.exists()) {
-            const postData = postSnapshot.data();
-
-            // Display SweetAlert form with pre-filled data
-            Swal.fire({
-                title: 'Edit Post',
-                html: `
-                    <input id="edit-title" class="swal2-input" placeholder="Title" value="${postData.title}">
-                    <textarea id="edit-content" class="swal2-textarea" placeholder="Content">${postData.content}</textarea>
-                `,
-                confirmButtonText: 'Save',
-                showCancelButton: true,
-                preConfirm: () => {
-                    const newTitle = document.getElementById("edit-title").value;
-                    const newContent = document.getElementById("edit-content").value;
-
-                    if (!newTitle || !newContent) {
-                        Swal.showValidationMessage(`Please enter both title and content`);
-                        return false;
-                    }
-                    return { newTitle, newContent };
-                },
-            }).then(async (result) => {
-                if (result.isConfirmed) {
-                    const { newTitle, newContent } = result.value;
-
-                    // Update the Firestore document
-                    await updateDoc(postRef, {
-                        title: newTitle,
-                        content: newContent,
-                        updatedAt: new Date().toISOString()
-                    });
+                if (postSnapshot.exists()) {
+                    const postData = postSnapshot.data();
 
                     Swal.fire({
-                        icon: 'success',
-                        title: 'Post Updated',
-                        text: 'Your post has been updated successfully!',
+                        title: 'Edit Post',
+                        html: `
+                            <input id="edit-title" class="swal2-input" placeholder="Title" value="${postData.title}">
+                            <textarea id="edit-content" class="swal2-textarea" placeholder="Content">${postData.content}</textarea>
+                        `,
+                        confirmButtonText: 'Save',
+                        showCancelButton: true,
+                        preConfirm: () => {
+                            const newTitle = document.getElementById("edit-title").value;
+                            const newContent = document.getElementById("edit-content").value;
+
+                            if (!newTitle || !newContent) {
+                                Swal.showValidationMessage(`Please enter both title and content`);
+                                return false;
+                            }
+                            return { newTitle, newContent };
+                        },
+                    }).then(async (result) => {
+                        if (result.isConfirmed) {
+                            const { newTitle, newContent } = result.value;
+
+                            await updateDoc(postRef, {
+                                title: newTitle,
+                                content: newContent,
+                                updatedAt: new Date().toISOString()
+                            });
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Post Updated',
+                                text: 'Your post has been updated successfully!',
+                            });
+                        }
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Post not found!',
                     });
                 }
-            });
-        } else {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Post not found!',
-            });
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.message,
+                });
+            }
         }
-    } catch (error) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: error.message,
-        });
-    }
-}
-
-                       
-              
 
         // Delete a Post
         async function deletePost(postId) {
